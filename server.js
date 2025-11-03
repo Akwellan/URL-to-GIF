@@ -6,36 +6,42 @@ const { spawn } = require("child_process");
 const puppeteer = require("puppeteer");
 
 const app = express();
+
+// ✅ accepter JSON et x-www-form-urlencoded (pas de parsing maison)
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use(express.static("public"));
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
 app.post("/api/gif", async (req, res) => {
   try {
-    // Lire le body FormData (sans fichiers)
-    let body = "";
-    for await (const c of req) body += c;
-    const fields = {};
-    body.split("\r\n").forEach(line => {
-      const m = line.match(/name="([^"]+)"\r?\n\r?\n(.*)/);
-      if (m) fields[m[1]] = m[2];
-    });
+    const {
+      url,
+      width = 1280,
+      height = 800,
+      fps = 10,
+      duration = 6000,
+      startDelay = 1500,
+      scrollStep = 40,
+      slowAnimations
+    } = req.body || {};
 
-    const url = fields.url;
     if (!url) return res.status(400).send("Missing url");
 
-    const W   = clamp(parseInt(fields.width || "1280"), 320, 3840);
-    const H   = clamp(parseInt(fields.height || "800"),  240, 2160);
-    const FPS = clamp(parseInt(fields.fps || "10"), 1, 60);
-    const DUR = clamp(parseInt(fields.duration || "6000"), 1000, 120000);
-    const DEL = clamp(parseInt(fields.startDelay || "1500"), 0, 60000);
-    const STEP= clamp(parseInt(fields.scrollStep || "40"), 1, 400);
-    const SLOW= !!fields.slowAnimations;
+    const W = clamp(parseInt(width), 320, 3840);
+    const H = clamp(parseInt(height), 240, 2160);
+    const FPS = clamp(parseInt(fps), 1, 60);
+    const DUR = clamp(parseInt(duration), 1000, 120000);
+    const DEL = clamp(parseInt(startDelay), 0, 60000);
+    const STEP = clamp(parseInt(scrollStep), 1, 400);
+    const SLOW = !!(slowAnimations === true || slowAnimations === "on" || slowAnimations === "true");
 
     const frames = Math.floor((DUR / 1000) * FPS);
     const tmp = "/app/tmp";
     fs.mkdirSync(tmp, { recursive: true });
+
     // Nettoyage
     for (const f of fs.readdirSync(tmp)) {
       if (f.startsWith("frame_") || f.startsWith("palette") || f === "capture.gif") {
@@ -78,7 +84,7 @@ app.post("/api/gif", async (req, res) => {
 
     await browser.close();
 
-    // FFmpeg palettegen + paletteuse pour un GIF propre
+    // FFmpeg palettegen + paletteuse
     const palette = path.join(tmp, "palette.png");
     await runFFmpeg(["-y", "-framerate", String(FPS), "-i", path.join(tmp, "frame_%05d.png"),
                      "-vf", "palettegen=max_colors=256", palette]);
@@ -95,7 +101,7 @@ app.post("/api/gif", async (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename="capture.gif"`);
     fs.createReadStream(gifPath).pipe(res);
   } catch (e) {
-    console.error(e);
+    console.error("API /api/gif error:", e);
     res.status(500).send("Erreur durant la génération du GIF");
   }
 });
