@@ -4,9 +4,10 @@ services:
   web2gif:
     image: ghcr.io/puppeteer/puppeteer:latest
     container_name: web2gif
+    user: root                      # << autorise apt-get dans le conteneur
     working_dir: /app
     ports:
-      - "9763:8080"
+      - "8080:8080"
     environment:
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
