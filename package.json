@@ -1,0 +1,14 @@
+{
+  "name": "web2gif",
+  "version": "1.0.0",
+  "description": "Génère un GIF scrollé depuis une URL (Puppeteer + FFmpeg)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "mime": "^4.0.4",
+    "puppeteer": "^23.7.0"
+  }
+}

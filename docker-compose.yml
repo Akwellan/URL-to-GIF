@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  web2gif:
+    image: ghcr.io/puppeteer/puppeteer:latest
+    container_name: web2gif
+    working_dir: /app
+    ports:
+      - "8080:8080"
+    environment:
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+      NODE_ENV: production
+    shm_size: "2gb"
+    volumes:
+      - ./:/app
+    command: >
+      sh -c "apt-get update &&
+             apt-get install -y --no-install-recommends ffmpeg &&
+             rm -rf /var/lib/apt/lists/* &&
+             (npm ci --omit=dev || npm i --omit=dev) &&
+             node server.js"
