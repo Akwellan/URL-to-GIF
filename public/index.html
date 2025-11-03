@@ -1,21 +1,95 @@
-<script>
-  const form = document.getElementById("f");
-  const res  = document.getElementById("res");
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    res.textContent = "Génération en cours…";
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Générer un GIF défilant depuis une URL</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 880px }
+    fieldset { border: 1px solid #ddd; padding: 16px; border-radius: 12px }
+    label { display:block; margin: 10px 0 4px }
+    input, button { padding: 10px; width: 100%; box-sizing: border-box }
+    .row3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px }
+    .note { color:#666; font-size: 0.9rem }
+    .result { margin-top: 16px }
+  </style>
+</head>
+<body>
+  <h1>Générer un GIF défilant depuis une URL</h1>
 
-    // ✅ envoyer en x-www-form-urlencoded
-    const body = new URLSearchParams(new FormData(form));
+  <!-- ✅ id="f" requis -->
+  <form id="f">
+    <fieldset>
+      <label>URL</label>
+      <input required type="url" name="url" placeholder="https://exemple.com" />
 
-    const r = await fetch("/api/gif", {
-      method: "POST",
-      body
+      <div class="row3">
+        <div>
+          <label>Largeur (px)</label>
+          <input type="number" name="width" value="1280" />
+        </div>
+        <div>
+          <label>Hauteur (px)</label>
+          <input type="number" name="height" value="800" />
+        </div>
+        <div>
+          <label>FPS</label>
+          <input type="number" name="fps" value="10" />
+        </div>
+      </div>
+
+      <div class="row3">
+        <div>
+          <label>Délai avant départ (ms)</label>
+          <input type="number" name="startDelay" value="1500" />
+        </div>
+        <div>
+          <label>Durée totale (ms)</label>
+          <input type="number" name="duration" value="6000" />
+        </div>
+        <div>
+          <label>Vitesse scroll (px/frame)</label>
+          <input type="number" name="scrollStep" value="40" />
+        </div>
+      </div>
+
+      <label><input type="checkbox" name="slowAnimations" /> Ralentir les animations CSS</label>
+      <p class="note">Astuce : augmente la durée ou baisse la vitesse pour les pages très longues / lazy-load.</p>
+
+      <button type="submit">Générer le GIF</button>
+    </fieldset>
+  </form>
+
+  <div class="result" id="res"></div>
+
+  <!-- ✅ on attend que le DOM soit prêt -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('f');
+      const res  = document.getElementById('res');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        res.textContent = 'Génération en cours…';
+
+        // Envoi en x-www-form-urlencoded (serveur accepte aussi JSON)
+        const body = new URLSearchParams(new FormData(form));
+
+        try {
+          const r = await fetch('/api/gif', { method: 'POST', body });
+          if (!r.ok) {
+            const t = await r.text().catch(()=>'');
+            res.textContent = 'Erreur génération GIF.' + (t ? (' ('+t+')') : '');
+            return;
+          }
+          const blob = await r.blob();
+          const url = URL.createObjectURL(blob);
+          res.innerHTML = `<a download="capture.gif" href="${url}">⬇️ Télécharger le GIF</a><br/><img style="max-width:100%;margin-top:10px" src="${url}" />`;
+        } catch (err) {
+          res.textContent = 'Erreur réseau: ' + (err?.message || err);
+        }
+      });
     });
-
-    if (!r.ok) { res.textContent = "Erreur génération GIF."; return; }
-    const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    res.innerHTML = `<a download="capture.gif" href="${url}">⬇️ Télécharger le GIF</a><br/><img style="max-width:100%;margin-top:10px" src="${url}" />`;
-  });
-</script>
+  </script>
+</body>
+</html>
