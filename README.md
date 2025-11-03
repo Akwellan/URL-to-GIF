@@ -12,7 +12,7 @@
 3. Mets l’URL de ce dépôt GitHub dans le champ :
 
    ```
-   https://github.com/<TON_UTILISATEUR>/urltogif.git
+   https://github.com/Akwellan/URL-to-GIF.git
    ```
 4. Laisse `refs/heads/main` (ou `master` selon ton repo)
 5. Dans **Compose path**, garde :
@@ -63,7 +63,7 @@ http://<IP_SERVEUR>:8080
 ## 🧩 Exemple rapide (en local)
 
 ```bash
-git clone https://github.com/<TON_UTILISATEUR>/urltogif.git
+git clone https://github.com/Akwellan/URL-to-GIF.git
 cd urltogif
 docker compose up --build
 # Ouvre http://localhost:8080
