@@ -6,7 +6,7 @@ services:
     container_name: web2gif
     working_dir: /app
     ports:
-      - "8080:8080"
+      - "9763:8080"
     environment:
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
