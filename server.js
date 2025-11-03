@@ -12,6 +12,28 @@ app.use(express.static("public"));
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
+async function resolveChrome() {
+  // Empêche l'env de forcer un mauvais binaire
+  delete process.env.PUPPETEER_EXECUTABLE_PATH;
+
+  // 1) Demande à Puppeteer
+  try {
+    const p = await puppeteer.executablePath();
+    if (p && fs.existsSync(p)) return p;
+  } catch {}
+
+  // 2) Fallbacks courants selon distro/images
+  const candidates = [
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+  ];
+  for (const p of candidates) if (fs.existsSync(p)) return p;
+
+  throw new Error("Aucun binaire Chrome/Chromium trouvé.");
+}
+
 app.post("/api/gif", async (req, res) => {
   const {
     url,
@@ -44,11 +66,16 @@ app.post("/api/gif", async (req, res) => {
 
   let browser;
   try {
-    const executablePath = await puppeteer.executablePath(); // auto
+    const executablePath = await resolveChrome();
     browser = await puppeteer.launch({
       executablePath,
       headless: true,
-      args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--ignore-certificate-errors"]
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--ignore-certificate-errors"
+      ],
     });
   } catch (e) {
     console.error("PUPPETEER_LAUNCH:", e);
@@ -104,7 +131,6 @@ app.post("/api/gif", async (req, res) => {
     }
 
     await browser.close();
-
     if (written === 0) {
       return res.status(500).send("NO_FRAMES: aucune frame écrite");
     }
@@ -122,8 +148,13 @@ app.post("/api/gif", async (req, res) => {
     }
     // gif
     try {
-      await runFFmpeg(["-y","-framerate", String(FPS), "-i", pattern, "-i", palette,
-        "-lavfi", "paletteuse=dither=sierra2_4a", "-gifflags", "+transdiff", gifPath]);
+      await runFFmpeg([
+        "-y","-framerate", String(FPS),
+        "-i", pattern, "-i", palette,
+        "-lavfi", "paletteuse=dither=sierra2_4a",
+        "-gifflags", "+transdiff",
+        gifPath
+      ]);
     } catch (e) {
       console.error("FFMPEG_PALETTEUSE:", e);
       return res.status(500).send("FFMPEG_PALETTEUSE: " + e.message);
@@ -135,18 +166,3 @@ app.post("/api/gif", async (req, res) => {
   } catch (e) {
     try { await browser?.close(); } catch {}
     console.error("GENERAL:", e);
-    return res.status(500).send("GENERAL: " + e.message);
-  }
-});
-
-function runFFmpeg(args) {
-  return new Promise((resolve, reject) => {
-    const p = spawn("ffmpeg", args, { stdio: ["ignore","ignore","pipe"] });
-    let err = "";
-    p.stderr.on("data", d => err += d.toString());
-    p.on("close", code => code === 0 ? resolve() : reject(new Error(err || "ffmpeg failed")));
-  });
-}
-
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log("Web2GIF prêt sur :" + PORT));
