@@ -48,11 +48,24 @@ app.post("/api/gif", async (req, res) => {
         try { fs.unlinkSync(path.join(tmp, f)); } catch {}
       }
     }
+    
+    let browser;
+    try {
+      const executablePath = await puppeteer.executablePath(); // <-- auto-detect
+      browser = await puppeteer.launch({
+        executablePath,
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--ignore-certificate-errors"
+        ]
+      });
+    } catch (e) {
+      return fail(500, "PUPPETEER_LAUNCH", e);
+    }
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    });
     const page = await browser.newPage();
     await page.setViewport({ width: W, height: H });
     await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });

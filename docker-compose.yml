@@ -10,7 +10,6 @@ services:
     ports:
       - "9786:8080"        # => http://<ip>:9786
     environment:
-      PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
       NODE_ENV: production
     shm_size: "2gb"
