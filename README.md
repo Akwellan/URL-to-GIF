@@ -23,7 +23,7 @@
 
 ➡️ Une fois lancé, accède à :
 ```
-http://<IP_SERVEUR>:8080
+http://<IP_SERVEUR>:9786
 ```
 
 ---
@@ -66,7 +66,7 @@ http://<IP_SERVEUR>:8080
 git clone https://github.com/Akwellan/URL-to-GIF.git
 cd urltogif
 docker compose up --build
-# Ouvre http://localhost:8080
+# Ouvre http://localhost:9786
 ```
 
 ---
@@ -74,7 +74,7 @@ docker compose up --build
 ## 🛡️ Notes
 
 - `shm_size: 2gb` est requis pour Chrome headless.  
-- Si exposé publiquement : protège le port 8080 derrière un proxy (Nginx ou Traefik).  
+- Si exposé publiquement : protège le port 9786 derrière un proxy (Nginx ou Traefik).  
 - Les GIFs sont temporaires et non stockés.
 
 ---
