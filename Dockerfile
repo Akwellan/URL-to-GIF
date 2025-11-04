@@ -1,5 +1,5 @@
 # --- Étape 1 : image de base Playwright avec Node
-FROM mcr.microsoft.com/playwright:v1.47.0-jammy
+FROM mcr.microsoft.com/playwright:v1.56.1-jammy
 
 # --- Étape 2 : définir le dossier de travail
 WORKDIR /app
