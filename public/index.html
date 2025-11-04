@@ -1,95 +1,291 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Générer un GIF défilant depuis une URL</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 880px }
-    fieldset { border: 1px solid #ddd; padding: 16px; border-radius: 12px }
-    label { display:block; margin: 10px 0 4px }
-    input, button { padding: 10px; width: 100%; box-sizing: border-box }
-    .row3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px }
-    .note { color:#666; font-size: 0.9rem }
-    .result { margin-top: 16px }
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Auto Scroll Capture</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --bg-alt: #151823;
+            --card: #1a1f2e;
+            --text: #e6e7eb;
+            --muted: #a9afc3;
+            --primary: #6ea8fe;
+            --accent: #7bdcb5;
+            --danger: #ff6b6b;
+            --border: #2a3145;
+            --radius: 14px;
+            --shadow: 0 10px 30px rgba(0,0,0,.35);
+            --focus: 0 0 0 3px rgba(110,168,254,.35);
+        }
+        *{box-sizing:border-box}
+        body {
+            margin:0; background:linear-gradient(180deg, #0f1115 0%, #0f121a 100%);
+            color:var(--text); font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+        }
+        .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+        header h1 { margin:0 0 8px; font-size: 28px; letter-spacing:.3px }
+        header p { margin:0; color:var(--muted) }
+        .grid { display:grid; grid-template-columns: 1.2fr .8fr; gap:24px; margin-top:26px }
+        @media (max-width: 980px){ .grid { grid-template-columns: 1fr; } }
+
+        .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+        .card .head { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between }
+        .card .head h2 { margin:0; font-size:18px }
+        .card .body { padding:20px }
+
+        .form-row { display:grid; grid-template-columns: 1fr 160px 160px; gap:12px; margin-bottom:12px }
+        .form-row-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px }
+        @media (max-width: 720px){ .form-row{ grid-template-columns: 1fr; } .form-row-2{grid-template-columns: 1fr;} }
+
+        label { display:block; font-size:13px; color:var(--muted); margin:0 0 6px }
+        input[type="text"], input[type="number"] {
+            width:100%; padding:12px 12px; background:var(--bg-alt); color:var(--text);
+            border:1px solid var(--border); border-radius:10px; outline:none;
+        }
+        input:focus { box-shadow:var(--focus); border-color:transparent }
+        .inline { display:flex; align-items:center; gap:10px }
+        .switch {
+            position:relative; width:46px; height:26px; background:#2b3246; border-radius:999px; cursor:pointer; border:1px solid var(--border);
+        }
+        .switch input { display:none; }
+        .switch .dot { position:absolute; top:2px; left:2px; width:20px; height:20px; background:#fff; border-radius:50%; transition:.22s all ease; }
+        .switch input:checked + .dot { transform: translateX(20px); background:var(--accent); }
+
+        .actions { display:flex; gap:10px; flex-wrap:wrap; }
+        button {
+            appearance:none; border:0; border-radius:10px; padding:12px 16px; cursor:pointer; font-weight:600;
+            background:var(--primary); color:#0b1020; transition:.2s transform ease, .2s opacity ease;
+        }
+        button.secondary{ background:#2c3348; color:var(--text); }
+        button:disabled{ opacity:.6; cursor:not-allowed }
+        button:active{ transform: translateY(1px); }
+
+        .status { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:13px;
+            background:var(--bg-alt); border:1px dashed var(--border); border-radius:10px; padding:14px; height:220px; overflow:auto; white-space:pre-wrap; }
+        .badge { font-size:12px; color:#0b1020; background:var(--accent); padding:6px 10px; border-radius:999px; }
+
+        .results { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px; }
+        @media (max-width: 980px){ .results { grid-template-columns: 1fr; } }
+        .media { background:var(--bg-alt); border:1px solid var(--border); border-radius:12px; overflow:hidden }
+        .media .meta { padding:12px 12px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px }
+        .meta a { color:var(--primary); text-decoration:none; font-weight:600 }
+        .muted { color:var(--muted) }
+
+        .spinner {
+            width:16px; height:16px; border-radius:50%; border:3px solid #2b3246; border-top-color:var(--primary);
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer { color:var(--muted); font-size:13px; margin-top:16px; text-align:center }
+        .hint { font-size:12px; color:var(--muted); margin-top:6px }
+    </style>
 </head>
 <body>
-  <h1>Générer un GIF défilant depuis une URL</h1>
+<div class="container">
+    <header>
+        <h1>Auto Scroll Capture</h1>
+        <p>Défile une page avec Playwright et exporte WebM · MP4 · GIF</p>
+    </header>
 
-  <!-- ✅ id="f" requis -->
-  <form id="f">
-    <fieldset>
-      <label>URL</label>
-      <input required type="url" name="url" placeholder="https://exemple.com" />
+    <div class="grid">
+        <!-- Panneau gauche : Formulaire -->
+        <section class="card">
+            <div class="head">
+                <h2>Paramètres</h2>
+                <span id="jobState" class="badge">Prêt</span>
+            </div>
+            <div class="body">
+                <form id="form">
+                    <div class="form-row">
+                        <div>
+                            <label for="url">URL</label>
+                            <input id="url" name="url" type="text" placeholder="https://exemple.com" required>
+                            <div class="hint">Par défaut : <code>https://huzounet.fr</code></div>
+                        </div>
+                        <div>
+                            <label for="width">Largeur</label>
+                            <input id="width" name="width" type="number" min="320" step="1" value="1280" required>
+                        </div>
+                        <div>
+                            <label for="height">Hauteur</label>
+                            <input id="height" name="height" type="number" min="240" step="1" value="720" required>
+                        </div>
+                    </div>
 
-      <div class="row3">
-        <div>
-          <label>Largeur (px)</label>
-          <input type="number" name="width" value="1280" />
+                    <div class="form-row-2">
+                        <div>
+                            <label for="duration">Durée de scroll (ms)</label>
+                            <input id="duration" name="duration" type="number" min="1000" step="500" value="15000" required>
+                        </div>
+                        <div class="inline" style="margin-top:28px">
+                            <label>Scroll lissé</label>
+                            <label class="switch">
+                                <input id="smooth" name="smooth" type="checkbox" checked>
+                                <span class="dot"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="runBtn" type="submit">🚀 Lancer la capture</button>
+                        <button id="clearBtn" type="button" class="secondary">🧹 Effacer les logs</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Panneau droit : Logs -->
+        <section class="card">
+            <div class="head">
+                <h2>Journal d’exécution</h2>
+                <div id="spinner" class="spinner" style="display:none"></div>
+            </div>
+            <div class="body">
+                <div id="logs" class="status" aria-live="polite"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Résultats -->
+    <section class="card" style="margin-top:24px">
+        <div class="head">
+            <h2>Résultats</h2>
         </div>
-        <div>
-          <label>Hauteur (px)</label>
-          <input type="number" name="height" value="800" />
+        <div class="body">
+            <div id="results" class="results"></div>
+            <footer id="footerHint" class="hint">Les résultats s’afficheront ici une fois le rendu terminé.</footer>
         </div>
-        <div>
-          <label>FPS</label>
-          <input type="number" name="fps" value="10" />
-        </div>
-      </div>
+    </section>
 
-      <div class="row3">
-        <div>
-          <label>Délai avant départ (ms)</label>
-          <input type="number" name="startDelay" value="1500" />
-        </div>
-        <div>
-          <label>Durée totale (ms)</label>
-          <input type="number" name="duration" value="6000" />
-        </div>
-        <div>
-          <label>Vitesse scroll (px/frame)</label>
-          <input type="number" name="scrollStep" value="40" />
-        </div>
-      </div>
+    <footer>
+        Fait avec ❤, Playwright et FFmpeg
+    </footer>
+</div>
 
-      <label><input type="checkbox" name="slowAnimations" /> Ralentir les animations CSS</label>
-      <p class="note">Astuce : augmente la durée ou baisse la vitesse pour les pages très longues / lazy-load.</p>
+<script>
+    const form = document.getElementById('form');
+    const logsEl = document.getElementById('logs');
+    const runBtn = document.getElementById('runBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const spinner = document.getElementById('spinner');
+    const jobState = document.getElementById('jobState');
+    const resultsEl = document.getElementById('results');
+    const footerHint = document.getElementById('footerHint');
 
-      <button type="submit">Générer le GIF</button>
-    </fieldset>
-  </form>
+    function log(line, type="info") {
+        const ts = new Date().toLocaleTimeString();
+        const prefix = type === "error" ? "❌" : type === "ok" ? "✅" : "•";
+        logsEl.textContent += `[${ts}] ${prefix} ${line}\n`;
+        logsEl.scrollTop = logsEl.scrollHeight;
+    }
+    function setBusy(busy) {
+        runBtn.disabled = busy;
+        spinner.style.display = busy ? 'inline-block' : 'none';
+        jobState.textContent = busy ? 'En cours…' : 'Prêt';
+    }
+    function clearResults() {
+        resultsEl.innerHTML = "";
+        footerHint.style.display = "block";
+    }
+    function addResultCard(kind, src, sizeText) {
+        const wrap = document.createElement('div');
+        wrap.className = 'media';
+        const body = document.createElement('div');
+        if (kind === 'gif') {
+            const img = document.createElement('img');
+            img.src = src; img.alt = 'GIF généré'; img.style.width='100%'; img.loading='lazy';
+            body.appendChild(img);
+        } else {
+            const vid = document.createElement('video');
+            vid.src = src; vid.controls = true; vid.playsInline = true; vid.muted = true; vid.style.width='100%';
+            body.appendChild(vid);
+        }
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const left = document.createElement('div');
+        left.innerHTML = `<strong>${kind.toUpperCase()}</strong> <span class="muted"> ${sizeText||''}</span>`;
+        const right = document.createElement('div');
+        const a = document.createElement('a'); a.href = src; a.download = ""; a.textContent = "Télécharger";
+        right.appendChild(a);
+        meta.appendChild(left); meta.appendChild(right);
+        wrap.appendChild(body); wrap.appendChild(meta);
+        resultsEl.appendChild(wrap);
+        footerHint.style.display = "none";
+    }
 
-  <div class="result" id="res"></div>
+    clearBtn.addEventListener('click', () => { logsEl.textContent = ""; });
 
-  <!-- ✅ on attend que le DOM soit prêt -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('f');
-      const res  = document.getElementById('res');
-
-      form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        res.textContent = 'Génération en cours…';
+        const url = document.getElementById('url').value.trim() || "https://huzounet.fr";
+        const width = +document.getElementById('width').value;
+        const height = +document.getElementById('height').value;
+        const duration = +document.getElementById('duration').value;
+        const smooth = document.getElementById('smooth').checked;
 
-        // Envoi en x-www-form-urlencoded (serveur accepte aussi JSON)
-        const body = new URLSearchParams(new FormData(form));
+        if (!/^https?:\/\//i.test(url)) {
+            return log("L’URL doit commencer par http:// ou https://", "error");
+        }
+        if (width < 320 || height < 240) {
+            return log("Dimensions minimales: 320×240", "error");
+        }
+
+        clearResults();
+        logsEl.textContent = "";
+        setBusy(true);
+        log(`Lancement sur ${url} (${width}x${height}, ${duration}ms, smooth=${smooth})…`);
 
         try {
-          const r = await fetch('/api/gif', { method: 'POST', body });
-          if (!r.ok) {
-            const t = await r.text().catch(()=>'');
-            res.textContent = 'Erreur génération GIF.' + (t ? (' ('+t+')') : '');
-            return;
-          }
-          const blob = await r.blob();
-          const url = URL.createObjectURL(blob);
-          res.innerHTML = `<a download="capture.gif" href="${url}">⬇️ Télécharger le GIF</a><br/><img style="max-width:100%;margin-top:10px" src="${url}" />`;
+            const res = await fetch('/api/scroll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, width, height, durationMs: duration, smooth })
+            });
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || ('HTTP '+res.status));
+            }
+            // On récupère le flux SSE de logs si dispo
+            const reader = res.body?.getReader?.();
+            if (reader) {
+                const decoder = new TextDecoder();
+                let jsonLine = "";
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    jsonLine += decoder.decode(value, { stream:true });
+
+                    // Traite par lignes
+                    let idx;
+                    while ((idx = jsonLine.indexOf("\n")) >= 0) {
+                        const line = jsonLine.slice(0, idx).trim();
+                        jsonLine = jsonLine.slice(idx+1);
+                        if (!line) continue;
+                        const evt = JSON.parse(line);
+                        if (evt.type === 'log') log(evt.message);
+                        if (evt.type === 'error') log(evt.message, "error");
+                        if (evt.type === 'result') {
+                            const { webmPath, mp4Path, gifPath, sizes } = evt.payload || {};
+                            if (webmPath) addResultCard('webm', webmPath, sizes?.webm);
+                            if (mp4Path) addResultCard('mp4', mp4Path, sizes?.mp4);
+                            if (gifPath) addResultCard('gif', gifPath, sizes?.gif);
+                        }
+                    }
+                }
+            } else {
+                log("Flux de réponse non lisible (pas de streaming).", "error");
+            }
+            log("Terminé.", "ok");
         } catch (err) {
-          res.textContent = 'Erreur réseau: ' + (err?.message || err);
+            console.error(err);
+            log(String(err.message || err), "error");
+        } finally {
+            setBusy(false);
         }
-      });
     });
-  </script>
+</script>
 </body>
 </html>
