@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  scroll-recorder:
+    build: .
+    container_name: scroll-recorder
+    restart: unless-stopped
+    ports:
+      - "9763:3000"
+    volumes:
+      - ./videos:/app/videos

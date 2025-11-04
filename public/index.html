@@ -103,7 +103,7 @@
                         <div>
                             <label for="url">URL</label>
                             <input id="url" name="url" type="text" placeholder="https://exemple.com" required>
-                            <div class="hint">Par défaut : <code>https://huzounet.fr</code></div>
+                            <div class="hint">Par défaut : <code>https://exemple.fr</code></div>
                         </div>
                         <div>
                             <label for="width">Largeur</label>
@@ -161,7 +161,7 @@
     </section>
 
     <footer>
-        Fait avec ❤, Playwright et FFmpeg
+        Fait avec Playwright et FFmpeg par <a href="https://www.sin2p.fr/">SIN2P</a>
     </footer>
 </div>
 
@@ -220,7 +220,7 @@
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const url = document.getElementById('url').value.trim() || "https://huzounet.fr";
+        const url = document.getElementById('url').value.trim() || "https://exemple.fr";
         const width = +document.getElementById('width').value;
         const height = +document.getElementById('height').value;
         const duration = +document.getElementById('duration').value;
